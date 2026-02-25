@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+from os import getenv
 from collections import defaultdict
 import csv
 import json
@@ -44,8 +45,8 @@ except NameError:
 
 def request(endpoint, resource, query={}):
     url = endpoint + "/" + resource
-    if apikey is not None:
-        query["key"] = apikey
+    apikey = getenv('OMEKA_KEY')
+    query["key"] = apikey
     url += "?" + urlencode(query)
 
     response = urlopen(url)
@@ -86,16 +87,19 @@ def get_all_pages(endpoint, resource):
         time.sleep(1)
     return data
 
-endpoint = ''
+endpoint = 'https://textart.omeka.net/api'
 while not endpoint:
     endpoint = input('Enter your Omeka API endpoint\n')
 endpoint = endpoint.strip().rstrip('/');
-apikey = input('\nIf you are using an API key, please enter it now. Otherwise press Enter.\n')
+apikey = input('\nCLI input of API keys is disabled for security reasons.\nPlease make sure your key is set as $OMEKA_KEY, then press enter.')
 if not apikey:
     apikey = None
 multivalue_separator = input('\nEnter a character to separate mutiple values within a single cell.\nThis character must not be used anywhere in your actual data.\nLeave blank to use the default separator: |\n')
 if not multivalue_separator:
     multivalue_separator = '|'
+debugMode = input('Would you like to run the script in debug mode? This will print API call responses as nicely formatted JSON as the .csv file is built.\nEnter the precise character Y if so, or press enter to use the default option with debug off.\n')
+if debugMode == 'Y':
+    debugMode = True
 
 # get list of supported resources by this site
 response, content = request(endpoint, 'resources')
@@ -116,6 +120,9 @@ for resource in resources:
 
     for D in data:
         csv_row = {}
+
+        if debugMode is True:
+            from pprint import pprint; pprint(D)
 
         for k, v in D.items():
             if k == 'tags':
